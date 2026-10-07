@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - EMP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Admin Control Center</h2>
+</div>
+
+<!-- Stat Cards -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card bg-primary text-white text-center p-3 shadow-sm">
+            <h5>Courses</h5>
+            <h3 class="mb-0">{{ total_courses }}</h3>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-success text-white text-center p-3 shadow-sm">
+            <h5>Exams</h5>
+            <h3 class="mb-0">{{ total_exams }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white text-center p-3 shadow-sm">
+            <h5>Examiners</h5>
+            <h3 class="mb-0">{{ total_examiners }}</h3>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-warning text-dark text-center p-3 shadow-sm">
+            <h5>Students</h5>
+            <h3 class="mb-0">{{ total_students }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white text-center p-3 shadow-sm">
+            <h5>Bookings</h5>
+            <h3 class="mb-0">{{ total_bookings }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Examiner Approvals -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Pending Examiner Registrations</h5>
+        <span class="badge bg-warning text-dark">{{ pending_examiners|length }} Pending</span>
+    </div>
+    <div class="card-body p-0">
+        {% if pending_examiners %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for examiner in pending_examiners %}
+                            <tr>
+                                <td><strong>{{ examiner.name }}</strong></td>
+                                <td>{{ examiner.username }}</td>
+                                <td>{{ examiner.email }}</td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('approve_examiner', user_id=examiner.id) }}" class="btn btn-success btn-sm me-1">Approve</a>
+                                    <a href="{{ url_for('deactivate_examiner', user_id=examiner.id) }}" class="btn btn-danger btn-sm">Reject</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="p-3 text-muted text-center">No pending examiner approval requests.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
