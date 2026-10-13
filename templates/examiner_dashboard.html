@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Examiner Dashboard - EMP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2>Examiner Control Panel</h2>
+        <p class="text-muted">Welcome, {{ current_user.name }}. Manage your examination slots and view student bookings below.</p>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Action Row -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Your Created Examination Slots</h5>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSlotModal">+ Create Slot</button>
+    </div>
+    <div class="card-body p-0">
+        {% if slots %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Examination</th>
+                            <th>Date & Time</th>
+                            <th>Capacity</th>
+                            <th>Available Seats</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for slot in slots %}
+                            <tr>
+                                <td><strong>{{ slot.examination.name }}</strong><br><small class="text-muted">{{ slot.examination.course.code }}</small></td>
+                                <td>{{ slot.date }} | {{ slot.start_time }} - {{ slot.end_time }}</td>
+                                <td>{{ slot.max_capacity }}</td>
+                                <td><span class="badge bg-success">{{ slot.available_seats }}</span></td>
+                                <td><span class="badge bg-secondary">{{ slot.status }}</span></td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('delete_slot', slot_id=slot.id) }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this slot?');">Remove</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="p-4 text-center text-muted">You haven't created any examination slots yet.</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Slot Modal -->
+<div class="modal fade" id="createSlotModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Create Examination Slot</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('examiner_dashboard') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="examination_id" class="form-label">Select Examination</label>
+                        <select class="form-select" id="examination_id" name="examination_id" required>
+                            <option value="" disabled selected>Choose exam...</option>
+                            {% for exam in examinations %}
+                                <option value="{{ exam.id }}">{{ exam.course.code }} - {{ exam.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="start_time" class="form-label">Start Time</label>
+                            <input type="time" class="form-control" id="start_time" name="start_time" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_time" class="form-label">End Time</label>
+                            <input type="time" class="form-control" id="end_time" name="end_time" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="max_capacity" class="form-label">Maximum Student Capacity</label>
+                        <input type="number" class="form-control" id="max_capacity" name="max_capacity" value="1" min="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Publish Slot</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

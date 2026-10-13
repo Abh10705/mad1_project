@@ -29,6 +29,10 @@ def home():
         return f"Welcome Examiner {current_user.name}! (Dashboard coming next)"
     elif current_user.role == 'student':
         return f"Welcome Student {current_user.name}! (Dashboard coming next)"
+    elif current_user.role == 'student':
+        return redirect(url_for('student_dashboard'))
+    elif current_user.role == 'examiner':
+        return redirect(url_for('examiner_dashboard'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -134,13 +138,44 @@ def admin_dashboard():
         pending_examiners=pending_examiners
     )
 
-@app.route('/admin/courses')
+@app.route('/admin/courses', methods=['GET', 'POST'])
 @login_required
 def manage_courses():
     if current_user.role != 'admin':
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('home'))
-    return "Course Management Section (Coming in next step)"
+
+    if request.method == 'POST':
+        code = request.form.get('code')
+        name = request.form.get('name')
+        description = request.form.get('description')
+
+        existing = Course.query.filter_by(code=code).first()
+        if existing:
+            flash(f'Course code {code} already exists!', 'danger')
+        else:
+            new_course = Course(code=code, name=name, description=description)
+            db.session.add(new_course)
+            db.session.commit()
+            flash(f'Course {code} - {name} created successfully!', 'success')
+        return redirect(url_for('manage_courses'))
+
+    courses = Course.query.all()
+    return render_template('courses.html', courses=courses)
+
+@app.route('/admin/courses/delete/<int:course_id>')
+@login_required
+def delete_course(course_id):
+    if current_user.role != 'admin':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('home'))
+
+    course = db.session.get(Course, course_id)
+    if course:
+        db.session.delete(course)
+        db.session.commit()
+        flash('Course deleted successfully.', 'info')
+    return redirect(url_for('manage_courses'))
 
 @app.route('/admin/approve-examiner/<int:user_id>')
 @login_required
@@ -170,5 +205,136 @@ def deactivate_examiner(user_id):
         flash(f'Examiner {examiner.name} account deactivated.', 'warning')
     return redirect(url_for('admin_dashboard'))
 
+@app.route('/student/dashboard')
+@login_required
+def student_dashboard():
+    if current_user.role != 'student':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('home'))
+
+    search_query = request.args.get('q', '')
+    if search_query:
+        examinations = Examination.query.join(Course).filter(
+            (Examination.name.ilike(f'%{search_query}%')) | 
+            (Course.name.ilike(f'%{search_query}%')) |
+            (Course.code.ilike(f'%{search_query}%'))
+        ).all()
+    else:
+        examinations = Examination.query.all()
+
+    return render_template('student_dashboard.html', examinations=examinations, search_query=search_query)
+
+from datetime import datetime
+
+@app.route('/admin/examinations', methods=['GET', 'POST'])
+@login_required
+def manage_examinations():
+    if current_user.role != 'admin':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        course_id = request.form.get('course_id')
+        name = request.form.get('name')
+        exam_type = request.form.get('exam_type')
+        duration = int(request.form.get('duration'))
+        max_marks = float(request.form.get('max_marks'))
+
+        # Parse datetime-local input fields
+        slot_creation_start = datetime.strptime(request.form.get('slot_creation_start'), '%Y-%m-%dT%H:%M')
+        slot_creation_end = datetime.strptime(request.form.get('slot_creation_end'), '%Y-%m-%dT%H:%M')
+        booking_start = datetime.strptime(request.form.get('booking_start'), '%Y-%m-%dT%H:%M')
+        booking_end = datetime.strptime(request.form.get('booking_end'), '%Y-%m-%dT%H:%M')
+
+        new_exam = Examination(
+            course_id=course_id,
+            name=name,
+            exam_type=exam_type,
+            duration=duration,
+            max_marks=max_marks,
+            slot_creation_start=slot_creation_start,
+            slot_creation_end=slot_creation_end,
+            booking_start=booking_start,
+            booking_end=booking_end,
+            status='Slot Creation'
+        )
+        db.session.add(new_exam)
+        db.session.commit()
+        flash(f'Examination "{name}" created successfully!', 'success')
+        return redirect(url_for('manage_examinations'))
+
+    examinations = Examination.query.all()
+    courses = Course.query.filter_by(status='active').all()
+    return render_template('examinations.html', examinations=examinations, courses=courses)
+
+@app.route('/admin/examinations/delete/<int:exam_id>')
+@login_required
+def delete_examination(exam_id):
+    if current_user.role != 'admin':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('home'))
+
+    exam = db.session.get(Examination, exam_id)
+    if exam:
+        db.session.delete(exam)
+        db.session.commit()
+        flash('Examination deleted successfully.', 'info')
+    return redirect(url_for('manage_examinations'))
+
+from models import User, Course, Examination, Slot, Booking
+
+@app.route('/examiner/dashboard', methods=['GET', 'POST'])
+@login_required
+def examiner_dashboard():
+    if current_user.role != 'examiner':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        examination_id = request.form.get('examination_id')
+        date_str = request.form.get('date')
+        start_time = request.form.get('start_time')
+        end_time = request.form.get('end_time')
+        max_capacity = int(request.form.get('max_capacity'))
+
+        exam = db.session.get(Examination, examination_id)
+        if not exam:
+            flash('Invalid examination selected.', 'danger')
+        else:
+            new_slot = Slot(
+                examination_id=examination_id,
+                examiner_id=current_user.id,
+                date=date_str,
+                start_time=start_time,
+                end_time=end_time,
+                max_capacity=max_capacity,
+                available_seats=max_capacity,
+                status='Available'
+            )
+            db.session.add(new_slot)
+            db.session.commit()
+            flash('Examination slot created successfully!', 'success')
+        return redirect(url_for('examiner_dashboard'))
+
+    slots = Slot.query.filter_by(examiner_id=current_user.id).all()
+    examinations = Examination.query.all()
+    return render_template('examiner_dashboard.html', slots=slots, examinations=examinations)
+
+@app.route('/examiner/slot/delete/<int:slot_id>')
+@login_required
+def delete_slot(slot_id):
+    if current_user.role != 'examiner':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('home'))
+
+    slot = db.session.get(Slot, slot_id)
+    if slot and slot.examiner_id == current_user.id:
+        db.session.delete(slot)
+        db.session.commit()
+        flash('Slot removed successfully.', 'info')
+    else:
+        flash('Unauthorized action or slot not found.', 'danger')
+    return redirect(url_for('examiner_dashboard'))
+
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(host='127.0.0.1', port=8080, debug=True)

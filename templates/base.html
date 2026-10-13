@@ -23,10 +23,11 @@
                         {% if current_user.role == 'admin' %}
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('manage_courses') }}">Courses</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('manage_examinations') }}">Examinations</a></li>
                         {% elif current_user.role == 'examiner' %}
-                            <li class="nav-item"><a class="nav-link" href="#">Examiner Dashboard</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('examiner_dashboard') }}">Examiner Dashboard</a></li>
                         {% elif current_user.role == 'student' %}
-                            <li class="nav-item"><a class="nav-link" href="#">Student Dashboard</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('student_dashboard') }}">Student Dashboard</a></li>
                         {% endif %}
                     {% endif %}
                 </ul>

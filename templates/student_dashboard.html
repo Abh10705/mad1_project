@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard - EMP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2>Student Dashboard</h2>
+        <p class="text-muted">Welcome, {{ current_user.name }}. Browse and book available examination slots below.</p>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Search / Filter Bar -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('student_dashboard') }}" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" class="form-control" name="q" value="{{ search_query }}" placeholder="Search examinations by name or course...">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Available Examinations List -->
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Available Examinations</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if examinations %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Course</th>
+                            <th>Examination Name</th>
+                            <th>Type</th>
+                            <th>Duration / Marks</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exam in examinations %}
+                            <tr>
+                                <td><span class="badge bg-secondary">{{ exam.course.code }}</span></td>
+                                <td><strong>{{ exam.name }}</strong></td>
+                                <td>{{ exam.exam_type }}</td>
+                                <td>{{ exam.duration }} mins | {{ exam.max_marks }} Marks</td>
+                                <td><span class="badge bg-info text-dark">{{ exam.status }}</span></td>
+                                <td class="text-end">
+                                    <a href="#" class="btn btn-outline-primary btn-sm">View Slots & Book</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="p-4 text-center text-muted">No examinations available at the moment. Please check back later.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
